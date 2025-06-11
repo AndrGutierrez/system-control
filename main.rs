@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::Path};
 
 fn get_value(input: &str) -> i32 {
     let arr: Vec<&str> = input.split(" ").collect();
@@ -7,6 +7,18 @@ fn get_value(input: &str) -> i32 {
     return res;
 }
 
+fn list_processes() -> std::io::Result<Vec<String>> {
+    let proc_path = Path::new("/proc");
+    let mut pids = Vec::new();
+    for entry in fs::read_dir(proc_path)? {
+        let entry = entry?;
+        let file_name = entry.file_name();
+        if let Ok(pid) = file_name.to_string_lossy().parse::<u32>() {
+            pids.push(pid.to_string())
+        }
+    }
+    Ok(pids)
+}
 fn main() {
     let result = fs::read_to_string("/proc/meminfo");
     if let Ok(contents) = result {
@@ -19,5 +31,14 @@ fn main() {
         let memory_used =
             (memory_total - memory_free - buffers - cached - sreclaimable) as f64 / 1024.0;
         println!("{:#?} MiB", memory_used);
+    }
+    match list_processes() {
+        Ok(pids) => {
+            println!("Running processes ({} total):", pids.len());
+            for pid in pids {
+                println!("PID: {}", pid);
+            }
+        }
+        Err(e) => eprintln!("Error listing processes: {}", e),
     }
 }
