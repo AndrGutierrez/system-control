@@ -1,5 +1,5 @@
-use std::{fs, path::Path};
 mod utils;
+use std::{fs};
 use utils::list_processes;
 use utils::get_value;
 
