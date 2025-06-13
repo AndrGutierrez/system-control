@@ -1,4 +1,5 @@
 use std::{fs, path::Path};
+
 pub fn get_value(input: &str) -> i32 {
     let arr: Vec<&str> = input.split(" ").collect();
     let filtered: Vec<&&str> = arr.iter().filter(|&item| !item.is_empty()).collect();
@@ -6,13 +7,41 @@ pub fn get_value(input: &str) -> i32 {
     return res;
 }
 
-pub fn get_libraries(pid: &str) -> String {
+pub fn get_libraries(pid: String) -> (Vec<String>, Vec<String>) {
     let path = format!("/proc/{}/maps", pid);
-    let content = fs::read_to_string(&path).expect("Error");
+    let content = fs::read_to_string(&path).expect("Failed to read process maps");
+    
+    let mut libraries = Vec::new();
+    let mut files = Vec::new();
+    
     for line in content.lines() {
-        println!("{}", line);
+        if let Some(path) = extract_path(line) {
+            if is_shared_library(&path) {
+                if !libraries.contains(&path) {
+                    libraries.push(path);
+                }
+            } else if !files.contains(&path) {
+                files.push(path);
+            }
+        }
     }
-    return "".to_string();
+    
+    (libraries, files)
+}
+
+fn extract_path(line: &str) -> Option<String> {
+    let parts: Vec<&str> = line.split_whitespace().collect();
+    if parts.len() >= 6 {
+        let path = parts[5];
+        if !path.is_empty() && path != "0" && Path::new(path).exists() {
+            return Some(path.to_string());
+        }
+    }
+    None
+}
+
+fn is_shared_library(path: &str) -> bool {
+    path.ends_with(".so") || path.contains(".so.")
 }
 
 pub fn get_memory_usage(pid: &str) -> f64 {
@@ -28,7 +57,7 @@ pub fn get_memory_usage(pid: &str) -> f64 {
     return memory_usage;
 }
 
-pub fn list_processes() -> std::io::Result<Vec<(f64, String)>> {
+pub fn list_processes() -> std::io::Result<Vec<(f64, String, String)>> {
     let proc_path = Path::new("/proc");
     let mut pids = Vec::new();
     for entry in fs::read_dir(proc_path)? {
@@ -39,7 +68,7 @@ pub fn list_processes() -> std::io::Result<Vec<(f64, String)>> {
             let name = get_process_name(&str_pid);
             let memory_usage = get_memory_usage(&str_pid);
             let process_info = format!("{:<8}{:>8.2} MiB\t{:<8} ", str_pid, memory_usage, name);
-            pids.push((memory_usage, process_info));
+            pids.push((memory_usage, process_info, str_pid));
         }
     }
     pids.sort_by(|a, b| a.0.partial_cmp(&b.0).expect("Could not compare f64 values"));
