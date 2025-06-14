@@ -8,12 +8,15 @@ fn main() {
     if let Ok(contents) = result {
         let info: Vec<&str> = contents.split("\n").collect();
         let memory_total = get_value(info[0]);
-        let memory_free = get_value(info[1]);
-        let buffers = get_value(info[3]);
-        let cached = get_value(info[4]);
-        let sreclaimable = get_value(info[25]);
+        // let memory_free = get_value(info[1]);
+        let memory_available = get_value(info[2]);
+        //let buffers = get_value(info[3]);
+        //let cached = get_value(info[4]);
+        //let sreclaimable = get_value(info[25]);
+        //memory_used =
+        //(memory_total - memory_free - buffers - cached - sreclaimable) as f64 / 1024.0;
         memory_used =
-            (memory_total - memory_free - buffers - cached - sreclaimable) as f64 / 1024.0;
+        (memory_total - memory_available) as f64 / 1024.0;
     }
     match list_processes() {
         Ok(processes) => {
