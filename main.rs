@@ -1,6 +1,6 @@
 mod utils;
-use std::{fs};
-use utils::{list_processes, get_value, get_libraries};
+use std::fs;
+use utils::{get_libraries, get_value, list_processes};
 
 fn main() {
     let result = fs::read_to_string("/proc/meminfo");
@@ -18,20 +18,31 @@ fn main() {
     match list_processes() {
         Ok(processes) => {
             let processes_len = processes.len();
-            let most_consuming_process = &processes[processes_len-1];
-            println!("Most memory-consuming process: \n {}", most_consuming_process.1);
+            let most_consuming_process = &processes[processes_len - 1];
+            println!("################################################");
+            println!("# Proceso que usa la mayor cantidad de memoria #");
+            println!("################################################");
+            println!("\n{:<9} {:<13} {}", "PID", "Memoria", "Nombre");
+            println!("\n{}", most_consuming_process.1);
             let (libraries, files) = get_libraries(most_consuming_process.2.clone());
-            println!("Librerias usadas:");
+            println!("\n####################");
+            println!("# Librerias usadas #");
+            println!("####################\n");
             for lib in libraries {
                 println!("{}", lib);
             }
-            
-            println!("\nArchivos usados:");
+
+            println!("\n###################");
+            println!("# Archivos usados #");
+            println!("###################\n");
             for file in files {
                 println!("{}", file);
             }
+            println!("\n#############################################");
+            println!("# Total de Memoria utilizada por el sistema #");
+            println!("############################################# \n");
             println!("{:#?} MiB", memory_used);
         }
         Err(e) => eprintln!("Error listing processes: {}", e),
-    }    
+    }
 }
