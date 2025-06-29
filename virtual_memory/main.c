@@ -1,5 +1,7 @@
 #include "get_user_input.h"
 #include "semaforo.h"
+#include "shm_read.h"
+#include "shm_write.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -37,7 +39,7 @@ int main() {
     close(fd1[0]);
 
     sem_wait(semid);
-    printf("Child 1 acquired semaphore\n");
+    // printf("Child 1 acquired semaphore\n");
 
     char *parsed_content = get_user_input("string.txt");
     size_t len = strlen(parsed_content) + 1;
@@ -49,7 +51,7 @@ int main() {
     close(fd1[1]);
 
     sem_signal(semid);
-    printf("Child 1 released semaphore\n");
+    // printf("Child 1 released semaphore\n");
 
   } else {
     close(fd1[1]);
@@ -58,7 +60,6 @@ int main() {
     if (pid2 == 0) {
       // hijo 2
       sem_wait(semid);
-      printf("Child 2 acquired semaphore\n");
 
       size_t len;
       read(fd1[0], &len, sizeof(size_t));
@@ -73,20 +74,23 @@ int main() {
       }
       uppercase[length] = '\0';
 
-      printf("Parsed from child2: %s\n", uppercase);
+      // printf("Parsed from child2: %s\n", uppercase);
+      shm_write(uppercase);
       free(content);
 
       sem_signal(semid);
-      printf("Child 2 released semaphore\n");
+      // printf("Child 2 released semaphore\n");
 
     } else {
       // padre
-      printf("Parent waiting for children...\n");
+      // printf("\n Parent waiting for children...\n");
       wait(NULL); // esperar por hijo 1
       wait(NULL); // esperar por hijo 2
       del_sem(semid);
-      printf("Parent done\n");
+      // printf("Parent done\n");
+      shm_read();
     }
   }
+
   return 0;
 }
