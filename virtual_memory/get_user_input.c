@@ -3,8 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-char *get_user_input(const char *filename) {
-  (void)filename; // Unused parameter
+char *get_user_input() {
 
   printf("Ingrese un texto: ");
 

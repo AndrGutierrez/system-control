@@ -52,7 +52,7 @@ int main() {
 
     sem_wait(mutex_semid);
     printf("Proceso hijo 1:\n");
-    char *parsed_content = get_user_input("string.txt");
+    char *parsed_content = get_user_input();
     size_t len = strlen(parsed_content) + 1;
 
     write(fd1[1], &len, sizeof(size_t));
