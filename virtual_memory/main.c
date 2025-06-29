@@ -66,7 +66,7 @@ int main() {
     // Wait for signal from child 2
     sem_wait(signal_semid);
 
-    printf("\nProceso hijo 1 1:\n");
+    printf("\nProceso hijo 1:\n");
     shm_read();
 
   } else {
