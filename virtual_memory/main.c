@@ -14,33 +14,44 @@
 
 int main() {
   int fd1[2];
-  int semid;
+  int mutex_semid;  // Semaphore for mutual exclusion
+  int signal_semid; // Semaphore for signaling
 
-  // crear semáforo
-  if ((semid = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT)) == -1) {
-    perror("semget");
+  if ((mutex_semid = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT)) == -1) {
+    perror("semget mutex");
+    return 1;
+  }
+  if (init_sem(mutex_semid, 1) == -1) {
+    del_sem(mutex_semid);
     return 1;
   }
 
-  // inicializar semáforo
-  if (init_sem(semid, 1) == -1) {
+  // Create signaling semaphore (initial value 0)
+  if ((signal_semid = semget(IPC_PRIVATE, 1, 0666 | IPC_CREAT)) == -1) {
+    perror("semget signal");
+    del_sem(mutex_semid);
+    return 1;
+  }
+  if (init_sem(signal_semid, 0) == -1) {
+    del_sem(mutex_semid);
+    del_sem(signal_semid);
     return 1;
   }
 
   if (pipe(fd1) == -1) {
     printf("Error occurred opening pipe");
-    del_sem(semid);
+    del_sem(mutex_semid);
+    del_sem(signal_semid);
     return 1;
   }
 
   pid_t pid = fork();
   if (pid == 0) {
-    // hijo 1
+    // Child 1
     close(fd1[0]);
 
-    sem_wait(semid);
-    // printf("Child 1 acquired semaphore\n");
-
+    sem_wait(mutex_semid);
+    printf("Proceso hijo 1:\n");
     char *parsed_content = get_user_input("string.txt");
     size_t len = strlen(parsed_content) + 1;
 
@@ -50,16 +61,21 @@ int main() {
     free(parsed_content);
     close(fd1[1]);
 
-    sem_signal(semid);
-    // printf("Child 1 released semaphore\n");
+    sem_signal(mutex_semid);
+
+    // Wait for signal from child 2
+    sem_wait(signal_semid);
+
+    printf("\nProceso hijo 1 1:\n");
+    shm_read();
 
   } else {
     close(fd1[1]);
     pid_t pid2 = fork();
 
     if (pid2 == 0) {
-      // hijo 2
-      sem_wait(semid);
+      // Child 2
+      sem_wait(mutex_semid);
 
       size_t len;
       read(fd1[0], &len, sizeof(size_t));
@@ -68,26 +84,28 @@ int main() {
       close(fd1[0]);
 
       size_t length = strlen(content);
-      char uppercase[length + 1]; // +1 for null terminator
+      char uppercase[length + 1];
       for (size_t i = 0; i < length; i++) {
         uppercase[i] = toupper(content[i]);
       }
       uppercase[length] = '\0';
 
-      // printf("Parsed from child2: %s\n", uppercase);
+      printf("\nProceso hijo 2:");
       shm_write(uppercase);
       free(content);
 
-      sem_signal(semid);
-      // printf("Child 2 released semaphore\n");
+      sem_signal(mutex_semid);
+
+      // Signal child 1 to proceed
+      sem_signal(signal_semid);
 
     } else {
-      // padre
-      // printf("\n Parent waiting for children...\n");
-      wait(NULL); // esperar por hijo 1
-      wait(NULL); // esperar por hijo 2
-      del_sem(semid);
-      // printf("Parent done\n");
+      // Parent
+      wait(NULL); // Wait for child 1
+      wait(NULL); // Wait for child 2
+      del_sem(mutex_semid);
+      del_sem(signal_semid);
+      printf("\nProceso padre:\n");
       shm_read();
     }
   }

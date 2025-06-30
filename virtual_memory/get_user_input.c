@@ -6,7 +6,7 @@
 char *get_user_input(const char *filename) {
   (void)filename; // Unused parameter
 
-  printf("Enter your text: ");
+  printf("Ingrese un texto: ");
 
   char buffer[256];
   if (fgets(buffer, sizeof(buffer), stdin) == NULL) {

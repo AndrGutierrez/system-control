@@ -23,7 +23,7 @@ void shm_read() {
     exit(1);
   }
 
-  printf("Read from shared memory: %s\n", shm);
+  printf("Leído desde la memoria compartida: %s\n", shm);
 
   // Detach from shared memory
   shmdt(shm);

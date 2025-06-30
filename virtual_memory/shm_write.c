@@ -27,7 +27,7 @@ void shm_write(const char *str) {
   strncpy(shm, str, SHM_SIZE - 1);
   shm[SHM_SIZE - 1] = '\0'; // Ensure null-termination
 
-  printf("Written to shared memory: %s\n", shm);
+  printf("\nEscrito en memoria compartida: %s\n", shm);
 
   // Detach from shared memory (but keep it alive)
   shmdt(shm);
