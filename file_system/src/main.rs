@@ -1,49 +1,87 @@
-use std::fs::{File, OpenOptions};
-use std::io::{self, BufReader, BufWriter, Read, Write};
+use rand::Rng;
+use std::fs::File;
+use std::io::{self, Read, Seek, SeekFrom, Write};
+use std::path::Path;
 use std::time::Instant;
 
-const NOMBRE_ARCHIVO: &str = "prueba_rendimiento.dat";
-const TAMANO_BLOQUE: usize = 1024; // 1 KB
-const NUM_BLOQUES: usize = 10240; //10 MB
+const FILE_SIZE_MB: u64 = 100; // Tamaño del archivo en MB
+const BUFFER_SIZE: usize = 8 * 1024; // 8KB buffer
 
 fn main() -> io::Result<()> {
-    println!("Iniciando prueba de escritura en '{}'...", NOMBRE_ARCHIVO);
-    let inicio_escritura = Instant::now();
+    let path = Path::new("testfile.bin");
 
-    let archivo_escritura = OpenOptions::new()
-        .write(true)
-        .create(true)
-        .truncate(true)
-        .open(NOMBRE_ARCHIVO)?;
-    let mut writer = BufWriter::new(archivo_escritura);
+    let write_start = Instant::now();
+    create_and_write_file(path)?;
+    println!("Escritura completada en: {:.2?}", write_start.elapsed());
 
-    let buffer = vec![b'A'; TAMANO_BLOQUE];
-
-    for _ in 0..NUM_BLOQUES {
-        writer.write_all(&buffer)?;
-    }
-
-    writer.flush()?;
-
-    let duracion_escritura = inicio_escritura.elapsed();
+    let read_start = Instant::now();
+    read_file_sequential(path)?;
     println!(
-        "Escritura completada en {:.2?}. Total escrito: {} KB.",
-        duracion_escritura,
-        (TAMANO_BLOQUE * NUM_BLOQUES) / 1024
+        "Lectura secuencial completada en: {:.2?}",
+        read_start.elapsed()
     );
 
-    println!("\nIniciando prueba de lectura de '{}'...", NOMBRE_ARCHIVO);
-    let inicio_lectura = Instant::now();
+    let random_start = Instant::now();
+    random_access(path)?;
+    println!(
+        "Acceso aleatorio completado en: {:.2?}",
+        random_start.elapsed()
+    );
 
-    let archivo_lectura = File::open(NOMBRE_ARCHIVO)?;
-    let mut reader = BufReader::new(archivo_lectura);
-    let mut buffer_lectura = [0u8; TAMANO_BLOQUE];
-
-    while reader.read(&mut buffer_lectura)? > 0 {}
-
-    let duracion_lectura = inicio_lectura.elapsed();
-    println!("Lectura completada en {:.2?}.", duracion_lectura);
-
-    println!("\nPrograma finalizado con éxito.");
     Ok(())
+}
+
+fn create_and_write_file(path: &Path) -> io::Result<()> {
+    let mut file = File::create(path)?;
+    let mut rng = rand::thread_rng();
+    let total_bytes = FILE_SIZE_MB * 1024 * 1024;
+    let mut bytes_written = 0;
+
+    while bytes_written < total_bytes {
+        let remaining = (total_bytes - bytes_written) as usize;
+        let chunk_size = BUFFER_SIZE.min(remaining);
+
+        let mut buffer = vec![0u8; chunk_size];
+        rng.fill(&mut buffer[..]);
+
+        file.write_all(&buffer)?;
+        bytes_written += chunk_size as u64;
+    }
+    file.sync_all()?;
+    Ok(())
+}
+
+fn read_file_sequential(path: &Path) -> io::Result<()> {
+    let mut file = File::open(path)?;
+    let mut buffer = vec![0u8; BUFFER_SIZE];
+
+    loop {
+        let bytes_read = file.read(&mut buffer)?;
+        if bytes_read == 0 {
+            break;
+        }
+        black_box(&buffer[..bytes_read]);
+    }
+    Ok(())
+}
+
+fn random_access(path: &Path) -> io::Result<()> {
+    let mut file = File::open(path)?;
+    let file_size = file.metadata()?.len();
+    let mut rng = rand::thread_rng();
+    let mut buffer = [0u8; 512];
+
+    for _ in 0..1000 {
+        let offset = rng.gen_range(0..file_size - buffer.len() as u64);
+        file.seek(SeekFrom::Start(offset))?;
+        file.read_exact(&mut buffer)?;
+        black_box(&buffer);
+    }
+    Ok(())
+}
+
+fn black_box(data: &[u8]) {
+    unsafe {
+        std::ptr::read_volatile(data.as_ptr());
+    }
 }

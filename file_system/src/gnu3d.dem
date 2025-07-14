@@ -27,32 +27,33 @@ set zlabel "Kbytes/sec"
 set style data lines
 set dgrid3d 80,80,3
 
-i = 1
-set terminal x11
-set output
-splot file(i) title title(i)
-pause -1 "Hit return to continue"
-set terminal postscript color
-set output outfile(i)
-replot
+# i = 1
+# set terminal x11
+# set output
+# splot file(i) title title(i)
+# pause -1 "Hit return to continue"
+# set terminal postscript color
+# set output outfile(i)
+# replot
+#
+# i = 2
+# set terminal x11
+# set output
+# replot
+# pause -1 "Hit return to continue"
+# set terminal postscript color
+# set output outfile(i)
+# replot
 
-i = 2
-set terminal x11
-set output
-replot
-pause -1 "Hit return to continue"
-set terminal postscript color
-set output outfile(i)
-replot
-
-i = 3
-set terminal x11
-set output
-replot
-pause -1 "Hit return to continue"
-set terminal postscript color
-set output outfile(i)
-replot
+# i = 3
+# set terminal x11
+# set output
+# splot file(i) title title(i)
+# replot
+# pause -1 "Hit return to continue"
+# set terminal postscript color
+# set output outfile(i)
+# replot
 
 i = 4
 set terminal x11
